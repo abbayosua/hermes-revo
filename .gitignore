@@ -1,0 +1,38 @@
+# Hermes-Revo — Ralph Loop Engine
+
+# ========== SECURITY (CRITICAL) ==========
+.env
+.env.*
+!env.example
+**/*.env
+**/.env
+secrets/
+secrets.*
+credentials*
+*.pem
+*.key
+*.cert
+token*
+api_key*
+
+# ========== RUNTIME ==========
+.revo/
+*.log
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# ========== OS ==========
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========== IDE ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
