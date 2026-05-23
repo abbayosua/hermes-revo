@@ -29,9 +29,17 @@ pip install -r requirements.txt
 python revo.py
 ```
 
-Revo automatically finds API keys from:
+Revo automatically finds API keys based on your **provider**:
+
+**For `hermes` (default):**
 1. `~/.hermes/.env` (Linux/Mac) or `~/AppData/Local/hermes/.env` (Windows)
-2. `LLM_API_KEY` environment variable
+2. `HERMES_API_KEY` / `LLM_API_KEY` / `OPENCODE_GO_API_KEY` environment variable
+
+**For `openai` (OpenAI-compatible):**
+1. `.env` file in project root → `OPENAI_API_KEY`
+2. `OPENAI_API_KEY` environment variable
+
+Set the provider via `revo.yaml` (`ai.provider`) or env var `AI_PROVIDER=openai`.
 
 ---
 
@@ -108,9 +116,22 @@ Revo automatically finds API keys from:
 Edit `revo.yaml`:
 
 ```yaml
-provider:
-  base_url: "https://opencode.ai/zen/go/v1"
-  default_model: "deepseek-v4-flash"
+# AI Provider — choose "hermes" (default) or "openai" (OpenAI-compatible)
+ai:
+  provider: "hermes"
+
+  # Hermes Agent / OpenCode Go
+  hermes:
+    base_url: "https://opencode.ai/zen/go/v1"
+    default_model: "deepseek-v4-flash"
+
+  # OpenAI-compatible (OpenAI, Ollama, Groq, Together, vLLM, DeepSeek, OpenRouter...)
+  openai:
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-4o"
+    # For Ollama: http://localhost:11434/v1
+    # For Groq:   https://api.groq.com/openai/v1
+    # For DeepSeek: https://api.deepseek.com/v1
 
 loop:
   interval_seconds: 5
@@ -122,7 +143,7 @@ files:
   preview_lines: 60            # Context lines shown for patching
 ```
 
-### Available Models (OpenCode Go)
+### Available Models (via Hermes / OpenCode Go)
 
 | Model | ID | Cost/req |
 |-------|-----|----------|
