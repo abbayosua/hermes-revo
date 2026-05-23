@@ -1,0 +1,26 @@
+# =============================================================================
+# Hermes-Revo Configuration
+# =============================================================================
+
+# LLM Provider
+provider:
+  base_url: "https://opencode.ai/zen/go/v1"
+  default_model: "deepseek-v4-flash"
+  # Alternative models: deepseek-v4-pro, qwen3.6-plus, kimi-k2.5
+
+# Loop behavior
+loop:
+  interval_seconds: 5          # Delay between stages
+  max_retries: 3               # LLM call retries
+  llm_timeout: 120             # Seconds to wait per LLM call
+
+# File handling
+files:
+  ban_modify_existing: true    # Never replace existing files (use patches)
+  preview_lines: 60            # Lines of context shown for patching
+  max_new_file_bytes: 50000    # Max bytes for new files
+
+# Logging
+logging:
+  dir: ".revo"
+  log_file: "revo.log"
