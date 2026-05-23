@@ -1,0 +1,37 @@
+{
+  "project": "FreeWorship",
+  "project_root": "/c/laragon/www/freeworship",
+  "tasks": [
+    {
+      "id": "bible-api",
+      "title": "Bible Verse API (from bible-api.com)",
+      "status": "pending",
+      "stages": [
+        {
+          "action": "create",
+          "file": "backend/api/bible.php",
+          "desc": "Bible verse proxy API using bible-api.com (free, Indonesian TB)",
+          "context": "Create a PHP API at backend/api/bible.php. Routes: GET /api/bible returns list of Indonesian Bible books. GET /api/bible?book=Mazmur&chapter=23 returns that chapter's verses. GET /api/bible?book=Mazmur&chapter=23&verse=1 returns single verse. GET /api/bible?q=Tuhan+gembalaku searches verses. Uses bible-api.com as backend with translation=tb (Terjemahan Baru Indonesia). Return JSON. Require ../helpers.php. Include all 66 books in Indonesian names (Kejadian, Keluaran, ... Wahyu). Map Indonesian names to English for API calls (Mazmur→psalms, Yohanes→john, etc.). Cache fetched verses to backend/data/bible.json file."
+        },
+        {
+          "action": "create",
+          "file": "frontend/components/BibleBrowser.js",
+          "desc": "Bible browser Vue 3 component",
+          "context": "Create Vue 3 component BibleBrowser.js. Options API with setup(). Import { ref, watch, onMounted } from 'vue'. Has: select dropdown for 66 Indonesian Bible books, number input for chapter (1-150), number input for verse (1-176). Fetches verse from API_BASE + '/bible?book=...&chapter=...&verse=...' on selection change. Displays verse text. Emits 'present-verse' with {book, chapter, verse, text}. Uses dark theme CSS vars. API_BASE from window.BASE_PATH. Template uses .bible-browser class. Button 'Tampilkan' to emit present-verse."
+        },
+        {
+          "action": "patch",
+          "file": "frontend/app.js",
+          "desc": "Import BibleBrowser + register + add Alkitab tab",
+          "context": "Add to app.js: 1) Import BibleBrowser at top. 2) Add to components. 3) Add third tab '📖 Alkitab' in sidebar-tabs after services button. 4) Add activeTab 'bible' support. 5) Show BibleBrowser when activeTab === 'bible'. 6) Handle 'present-verse' event to jump to presenter mode."
+        },
+        {
+          "action": "append",
+          "file": "frontend/style.css",
+          "desc": "CSS for Bible browser (dark theme)",
+          "context": "Append CSS for .bible-browser, .bible-browser select, .bible-browser input, .verse-text — all matching dark worship theme."
+        }
+      ]
+    }
+  ]
+}
