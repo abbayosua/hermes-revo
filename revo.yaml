@@ -2,11 +2,25 @@
 # Hermes-Revo Configuration
 # =============================================================================
 
-# LLM Provider
-provider:
-  base_url: "https://opencode.ai/zen/go/v1"
-  default_model: "deepseek-v4-flash"
-  # Alternative models: deepseek-v4-pro, qwen3.6-plus, kimi-k2.5
+# AI Provider
+# Choose your backend: "hermes" (default) or "openai" (OpenAI-compatible)
+ai:
+  provider: "hermes"
+
+  # Hermes Agent / OpenCode Go
+  hermes:
+    base_url: "https://opencode.ai/zen/go/v1"
+    default_model: "deepseek-v4-flash"
+    # Alternative models: deepseek-v4-pro, qwen3.6-plus, kimi-k2.5
+
+  # OpenAI-compatible (OpenAI, Ollama, Groq, Together, vLLM, DeepSeek, OpenRouter...)
+  openai:
+    base_url: "https://api.openai.com/v1"
+    model: "gpt-4o"
+    # For local models (Ollama): http://localhost:11434/v1
+    # For Groq: https://api.groq.com/openai/v1
+    # For DeepSeek: https://api.deepseek.com/v1
+    # For OpenRouter: https://openrouter.ai/api/v1
 
 # Loop behavior
 loop:
