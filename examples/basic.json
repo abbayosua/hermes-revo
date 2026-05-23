@@ -1,0 +1,24 @@
+{
+  "project": "My Project",
+  "tasks": [
+    {
+      "id": "hello-world",
+      "title": "Create a simple API endpoint",
+      "status": "pending",
+      "stages": [
+        {
+          "action": "create",
+          "file": "api/hello.php",
+          "desc": "Simple hello world API",
+          "context": "Create a PHP file that returns JSON with a greeting. The API endpoint should return {\"message\": \"Hello from Revo!\", \"time\": \"...\"} with current time. Require no external dependencies. Use jsonResponse helper pattern."
+        },
+        {
+          "action": "patch",
+          "file": "index.php",
+          "desc": "Add route for hello API",
+          "context": "Add a route in the router for /api/hello to include api/hello.php. Find the existing routing switch statement and add a new case."
+        }
+      ]
+    }
+  ]
+}
