@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
 ═══════════════════════════════════════════════════════════════
-  Hermes-Revo — Ralph Loop Engine v3
+  Hermes-Revo — Ralph Loop Engine v3.1
   "Load. Execute. Revolve. Repeat."
 ═══════════════════════════════════════════════════════════════
 
   A background loop engine for autonomous task execution.
-  Uses LLM (DeepSeek/GPT/Qwen) to implement coding tasks
-  stage by stage. No cron job needed.
+  Uses LLM (Hermes or OpenAI-compatible) to implement
+  coding tasks stage by stage. No cron job needed.
+
+  Supported providers:
+    - hermes  : Hermes Agent / OpenCode Go
+    - openai  : OpenAI-compatible (OpenAI, Ollama, Groq,
+                Together, vLLM, DeepSeek, OpenRouter, etc.)
 ═══════════════════════════════════════════════════════════════
 """
 
@@ -36,9 +41,16 @@ from openai import OpenAI
 # =============================================================================
 
 DEFAULT_CONFIG = {
-    "provider": {
-        "base_url": "https://opencode.ai/zen/go/v1",
-        "default_model": "deepseek-v4-flash",
+    "ai": {
+        "provider": "hermes",
+        "hermes": {
+            "base_url": "https://opencode.ai/zen/go/v1",
+            "default_model": "deepseek-v4-flash",
+        },
+        "openai": {
+            "base_url": "https://api.openai.com/v1",
+            "model": "gpt-4o",
+        },
     },
     "loop": {
         "interval_seconds": 5,
@@ -143,16 +155,23 @@ def deep_merge(base: dict, override: dict) -> None:
 
 def resolve_api_key(config: dict) -> str:
     """
-    Resolve API key from:
-    1. .env file in project root
-    2. LLM_API_KEY env var
-    3. OPENCODE_GO_API_KEY env var
-    4. OPENAI_API_KEY env var
-    5. Hermes .env file (Windows: ~/AppData/Local/hermes/.env)
-    6. Hermes .env file (Linux/Mac: ~/.hermes/.env)
+    Resolve API key based on the active provider.
+    
+    For 'hermes': checks .env (project root) for HERMES_API_KEY / LLM_API_KEY /
+                  OPENCODE_GO_API_KEY / OPENAI_API_KEY, then Hermes' own .env
+                  (~/AppData/Local/hermes/.env on Windows), then env vars.
+    For 'openai': checks .env (project root) for OPENAI_API_KEY, then env vars.
     """
+    provider = config.get("ai", {}).get("provider", "hermes")
 
-    # Check .env in project root
+    if provider == "openai":
+        return _resolve_openai_key()
+
+    return _resolve_hermes_key()
+
+
+def _resolve_hermes_key() -> str:
+    """Resolve Hermes API key from .env files and env vars."""
     env_paths = [
         Path(".env"),
         Path(os.path.expanduser("~/AppData/Local/hermes/.env")),
@@ -170,19 +189,57 @@ def resolve_api_key(config: dict) -> str:
                     key, val = line.split("=", 1)
                     key = key.strip()
                     val = val.strip().strip('"').strip("'")
-                    if key in ("LLM_API_KEY", "OPENCODE_GO_API_KEY", "OPENAI_API_KEY"):
+                    if key in ("HERMES_API_KEY", "LLM_API_KEY",
+                               "OPENCODE_GO_API_KEY", "OPENAI_API_KEY"):
                         if val and val != "***":
                             return val
             except Exception:
                 pass
 
-    # Check env vars
-    for env_var in ("LLM_API_KEY", "OPENCODE_GO_API_KEY", "OPENAI_API_KEY"):
+    # Fallback to env vars
+    for env_var in ("HERMES_API_KEY", "LLM_API_KEY",
+                    "OPENCODE_GO_API_KEY", "OPENAI_API_KEY"):
         val = os.environ.get(env_var, "")
         if val and val != "***":
             return val
 
-    logging.error("No API key found! Set LLM_API_KEY in .env or use Hermes .env")
+    logging.error(
+        "No API key found for provider 'hermes'!\n"
+        "  Set HERMES_API_KEY in .env, or use Hermes Agent's .env file."
+    )
+    sys.exit(1)
+
+
+def _resolve_openai_key() -> str:
+    """Resolve OpenAI-compatible API key from .env and env vars."""
+    env_paths = [
+        Path(".env"),
+    ]
+
+    for env_path in env_paths:
+        if env_path.exists():
+            try:
+                for line in env_path.read_text().splitlines():
+                    line = line.strip()
+                    if line.startswith("#") or "=" not in line:
+                        continue
+                    key, val = line.split("=", 1)
+                    key = key.strip()
+                    val = val.strip().strip('"').strip("'")
+                    if key == "OPENAI_API_KEY":
+                        if val and val != "***":
+                            return val
+            except Exception:
+                pass
+
+    val = os.environ.get("OPENAI_API_KEY", "")
+    if val and val != "***":
+        return val
+
+    logging.error(
+        "No API key found for provider 'openai'!\n"
+        "  Set OPENAI_API_KEY in .env"
+    )
     sys.exit(1)
 
 
@@ -194,15 +251,26 @@ class LLMClient:
     """OpenAI-compatible LLM client with retries + cost tracking."""
 
     def __init__(self, config: dict):
-        self.base_url = config["provider"]["base_url"]
-        self.model = config["provider"]["default_model"]
+        self.provider = config.get("ai", {}).get("provider", "hermes")
         self.max_retries = config["loop"]["max_retries"]
         self.timeout = config["loop"]["llm_timeout"]
-        self.api_key = resolve_api_key(config)
         self.total_cost = 0.0
         self.total_input = 0
         self.total_output = 0
 
+        if self.provider == "openai":
+            ai_cfg = config.get("ai", {}).get("openai", {})
+            self.base_url = ai_cfg.get("base_url",
+                "https://api.openai.com/v1")
+            self.model = ai_cfg.get("model", "gpt-4o")
+        else:
+            ai_cfg = config.get("ai", {}).get("hermes", {})
+            self.base_url = ai_cfg.get("base_url",
+                "https://opencode.ai/zen/go/v1")
+            self.model = ai_cfg.get("default_model",
+                "deepseek-v4-flash")
+
+        self.api_key = resolve_api_key(config)
         self.client = OpenAI(
             api_key=self.api_key,
             base_url=self.base_url,
@@ -611,6 +679,7 @@ class RevoLoop:
         """Run the main loop until all tasks are done."""
         logging.info("=" * 60)
         logging.info("  REVO ENGINE STARTED")
+        logging.info(f"  Provider: {self.llm.provider}")
         logging.info(f"  Model: {self.llm.model}")
         logging.info(f"  API: {self.llm.base_url}")
         logging.info(f"  Project: {self.project_root}")
@@ -703,6 +772,16 @@ def main():
     config = load_config()
 
     # Override with env vars
+    if os.environ.get("AI_PROVIDER"):
+        config.setdefault("ai", {})["provider"] = os.environ["AI_PROVIDER"]
+    if os.environ.get("HERMES_API_URL"):
+        config.setdefault("ai", {}).setdefault("hermes", {})["base_url"] = os.environ["HERMES_API_URL"]
+    if os.environ.get("HERMES_MODEL"):
+        config.setdefault("ai", {}).setdefault("hermes", {})["default_model"] = os.environ["HERMES_MODEL"]
+    if os.environ.get("OPENAI_BASE_URL"):
+        config.setdefault("ai", {}).setdefault("openai", {})["base_url"] = os.environ["OPENAI_BASE_URL"]
+    if os.environ.get("OPENAI_MODEL"):
+        config.setdefault("ai", {}).setdefault("openai", {})["model"] = os.environ["OPENAI_MODEL"]
     if os.environ.get("REVO_MANIFEST"):
         config["manifest"] = os.environ["REVO_MANIFEST"]
     if os.environ.get("REVO_INTERVAL"):
